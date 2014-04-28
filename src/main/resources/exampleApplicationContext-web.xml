@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd">
+
+	<!-- Note: Attempting to use a hibernate aware Jackson message converter so that we won't have errors while Jackson
+	attempts to serialize lazily loaded fields that have not been loaded. !!Without this we'd need DTOs rather than returning Hibernate
+	objects from our Controllers!! See https://github.com/FasterXML/jackson-datatype-hibernate
+	Note that we had to create the HibernateAwareObjectMapper below, as directed in the above Jackson URL
+	Note: This ties us to using Hibernate as the JPA provider
+	Note!!: Even after doing this my troubles JSON serialization troubles weren't over, because Jackson gave a 
+	org.springframework.http.converter.HttpMessageNotWritableException: Could not write JSON: Infinite recursion (StackOverflowError)
+	when serializing a question and its choices, because each choice had a reference back to the question.
+	To fix that I used the following annotation on both the Question and Choice classes
+	@JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
+	 -->
+    <!--Originally we just used the default message-converters <mvc:annotation-driven/> -->
+    
+  <mvc:annotation-driven>
+        <mvc:message-converters>
+            <!-- Use the HibernateAware mapper instead of the default -->
+            <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+                <property name="objectMapper">
+                    <bean class="org.tassoni.quizspring.config.HibernateAwareObjectMapper" />
+                </property>
+            </bean>
+        </mvc:message-converters>
+    </mvc:annotation-driven>    
+    
+
+    <mvc:resources mapping="/static/**" location="/static/"/>
+    <mvc:default-servlet-handler/>
+
+    <context:component-scan base-package="org.tassoni.quizspring.controller"/>
+
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/jsp/"/>
+        <property name="suffix" value=".jsp"/>
+        <property name="viewClass" value="org.springframework.web.servlet.view.JstlView"/>
+    </bean>
+</beans>

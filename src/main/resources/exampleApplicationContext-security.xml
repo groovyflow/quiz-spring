@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd">
+
+    <!-- Disable security on static resources -->
+    <security:http pattern="/static/**" security="none"/>
+
+    <!-- Enable Spring Security -->
+    <!-- Chuck. The authentication entry point is where you begin authentication if you are blocked from visiting the urls below.
+    	 Often you would redirect to a login page, but since this is a REST app, our RestAuthenticationEntryPoint will just return the 
+    	 UNAUTHORIZED status code. Perhaps one could also do a link {rel: href} telling where the login URL is
+     -->
+    <security:http entry-point-ref="restAuthenticationEntryPoint" use-expressions="true">
+        <!-- Configures the security rules of our REST API -->
+        <security:intercept-url pattern="/api/login" access="permitAll()"/>
+        <security:intercept-url pattern="/api/**" access="hasRole('ROLE_USER')"/>
+
+        <!-- Adds the custom login filter to Spring Security filter chain -->
+        <security:custom-filter ref="loginFilter" position="FORM_LOGIN_FILTER"/>
+        <!-- Adds a logout filter to Spring Security filter chain -->
+        <security:logout logout-url="/api/logout" delete-cookies="true" invalidate-session="true" success-handler-ref="restLogoutSuccessHandler"/>
+    </security:http>
+
+    <!-- Configures the authentication entry point that returns HTTP status code 401 -->
+    <bean id="restAuthenticationEntryPoint" class="org.tassoni.quizspring.security.RestAuthenticationEntryPoint"/>
+
+    <!-- Configures a custom login filter bean -->
+    <bean id="loginFilter" class="org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter">
+        <property name="authenticationManager" ref="authenticationManager"/>
+        <property name="authenticationFailureHandler" ref="restAuthenticationFailureHandler"/>
+        <property name="authenticationSuccessHandler" ref="restAuthenticationSuccessHandler"/>
+        <property name="filterProcessesUrl" value="/api/login"/>
+        <property name="usernameParameter" value="username"/>
+        <property name="passwordParameter" value="password"/>
+        <property name="postOnly" value="true"/>
+    </bean>
+
+    <!-- Configures a custom authentication success handler that returns HTTP status code 200 -->
+    <bean id="restAuthenticationSuccessHandler" class="org.tassoni.quizspring.security.RestAuthenticationSuccessHandler"/>
+
+    <!-- Configures a custom authentication failure handler that returns HTTP status code 401 -->
+    <bean id="restAuthenticationFailureHandler" class="org.tassoni.quizspring.security.RestAuthenticationFailureHandler"/>
+
+    <!-- Configures a custom logout success handler that returns HTTP status code 200 -->
+    <bean id="restLogoutSuccessHandler" class="org.tassoni.quizspring.security.RestLogoutSuccessHandler"/>
+
+   <!-- This component scan should pick up the UserDetailsService that's magically referenced by the authentication-manager below -->
+   <context:component-scan base-package="org.tassoni.quizspring.security"/>
+  
+    <security:authentication-manager alias="authenticationManager">
+        <security:authentication-provider user-service-ref="userDetailsService">
+ <!--            <security:user-service > 
+                <security:user name="Chuck" password="thePassword" authorities="ROLE_USER"/>
+            </security:user-service> -->
+        </security:authentication-provider>
+    </security:authentication-manager>
+</beans>
