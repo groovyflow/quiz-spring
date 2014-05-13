@@ -49,7 +49,8 @@
     <!-- Configures a custom logout success handler that returns HTTP status code 200 -->
     <bean id="restLogoutSuccessHandler" class="org.tassoni.quizspring.security.RestLogoutSuccessHandler"/>
 
-   <!-- This component scan should pick up the UserDetailsService that's magically referenced by the authentication-manager below -->
+   <!-- This component scan should pick up the UserDetailsService that's implicitly referenced by the DaoAuthenticationProvider that
+   is the default AuthenticationProvider give to the authentication-manager below -->
    <context:component-scan base-package="org.tassoni.quizspring.security"/>
   
     <security:authentication-manager alias="authenticationManager">

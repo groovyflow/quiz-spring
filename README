@@ -13,15 +13,12 @@ Getting away without using DataTransferObjects.
            Solution: Configure a HibernateAwareObjectMapper.  See src/main/resources/exampleApplicationContext-web.xml
         2. Your Jackson Object Mapper will give a "Could not write JSON: Infinite recursion (StackOverflowError)" when serializing domain objects that have bi-directional relationships
            Solution: Use this wonderful Jackson annotation: @JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@<yourId>")
-Testing Repository code directly rather than testing by way of service methods.
-	You need to run repository methods inside a transaction, and in a typical app transaction demarcation is provided only by methods on Service classes.
-	But there's nothing wrong with using a TransactionTemplate, as done in WorkOnQueriesTest and QuizControllerTest.  There a TransactionTemplate is constructed from an @Autowired PlatformTransactionManager.
 Turning a domain object id into a domain object without querying or being inside a transaction.
 	Often you'll have access only to a domain object id. Your Service apis become less type safe if all the signatures contain ids rather than entities.
 	What do you do?
 		EntityManager has a getReference(Class clazz, Object primaryKey) method that creates your Entity class without going to the database.
 		You can add that method to a Repository object and have a Service expose that getReference through delegation.
 		For a sample usage see QuizController  	
-Implementation of Spring Security with an implicit JdbcAuthenticationProvider?? that uses my UserDetailsService, and configuration that protects URLs from insecure access.
+Implementation of Spring Security with an implicit DaoAuthenticationProvider that uses my UserDetailsService, and configuration that protects URLs from insecure access.
 (Actually, that's rather a common trick to be called 'nice.'  But the fact that the UserDetailsService is found by convention can fool people.)		
 

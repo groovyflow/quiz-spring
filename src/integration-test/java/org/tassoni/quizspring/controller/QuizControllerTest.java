@@ -1,5 +1,7 @@
 package org.tassoni.quizspring.controller;
 
+import org.tassoni.quizspring.model.Choice;
+import java.awt.event.TextListener;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 
@@ -8,6 +10,12 @@ import java.util.ArrayList;
 //import net.petrikainulainen.spring.testmvc.IntegrationTestUtil;
 
 
+
+
+
+
+
+import java.util.List;
 
 
 
@@ -22,21 +30,15 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
 import org.tassoni.quizspring.model.Answer;
+import org.tassoni.quizspring.model.Question;
 import org.tassoni.quizspring.model.User;
 import org.tassoni.quizspring.repository.BasicRepository;
 import org.tassoni.quizspring.service.QuizService;
+import org.tassoni.quizspring.service.QuizServiceImpl;
 
 import com.jayway.jsonpath.JsonPath;
-
-
-
-
 
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -62,11 +64,6 @@ public class QuizControllerTest {
     private QuizService quizService;
     
     @Autowired 
-    private PlatformTransactionManager platformTransactionManager;
-    
-    private TransactionTemplate transactionTemplate;
-    
-    @Autowired 
     private BasicRepository basicRepository;
      
     private MockMvc mockMvc;
@@ -79,7 +76,6 @@ public class QuizControllerTest {
     public void setUp() {
         mockMvc =  MockMvcBuilders.webAppContextSetup(webApplicationContext).addFilter(filterChainProxy).build();
         //user = quizService.findUserByUsernameAndPassword(userName, correctPassword);
-        transactionTemplate = new TransactionTemplate(platformTransactionManager);
     }
     
    
@@ -88,6 +84,7 @@ public class QuizControllerTest {
     	mockMvc.perform(get("/api/quiz/next")).andExpect(status().isUnauthorized());  	
     }
     
+    @SuppressWarnings("serial")
     @Test
     public void nextQuestion_WhenNoQuestionHasBeenAnsweredYet() throws Exception{
     	String json = mockMvc.perform(get("/api/quiz/next")
@@ -95,18 +92,21 @@ public class QuizControllerTest {
     			//.sessionAttr(QuizController.USER_KEY, user))
     			).andExpect(status().isOk()).
     			andReturn().getResponse().getContentAsString();
+    	Question expectedQuestion = basicRepository.findQuestionAndChoices(QuizServiceImpl.INITIAL_QUESTION);
     	
-    	assertEquals("question.Id is not as expected", new Integer(1), JsonPath.read(json, "$.id"));
-    	assertEquals("question.text is not as expected", "Do you have a LinkedIn account?", JsonPath.read(json, "$.text"));
+    	assertEquals("question.Id is not as expected", QuizServiceImpl.INITIAL_QUESTION.intValue(), JsonPath.read(json, "$.id"));
+    	assertEquals("question.text is not as expected", expectedQuestion.getText(), JsonPath.read(json, "$.text"));
+    	assertNull(expectedQuestion.getEdge());
     	assertTrue("question.edge should be null", null == JsonPath.read(json, "$.edge"));
+    	assertNull(expectedQuestion.getWhyImpportant());
     	assertTrue("question.whyImportant should be null", null == JsonPath.read(json, "$.whyImpportant"));
+
+    	assertEquals("choice texts are not as expected", mapChoiceText(expectedQuestion.getChoices()), 
+    			JsonPath.read(json, "$.choices[*].text"));
+    	assertEquals("choice ids are not as expected", mapChoiceIdsAsInteger(expectedQuestion.getChoices()), 
+    			JsonPath.read(json, "$.choices[*].id"));
     	
-    	assertEquals("choice texts are not as expected", new ArrayList<String>() {
-    		{
-    		  add("No");
-    		  add("Yes");
-    		}
-    	}, JsonPath.read(json, "$.choices[*].text"));
+
     	assertEquals("choice ids are not as expected", new ArrayList<Integer>() {
     		{
     		  add(1);
@@ -201,12 +201,22 @@ public class QuizControllerTest {
     }
     
     private Answer findLatestAnswer(final User user) {
-    	return transactionTemplate.execute(new TransactionCallback<Answer>() {
-			@Override
-			public Answer doInTransaction(TransactionStatus status) {
-				return basicRepository.latestAnswerForUser(user);
-			}
-		});
+    	return basicRepository.latestAnswerForUser(user);
     };
     
+    private List<String> mapChoiceText(List<Choice> choices) {
+    	List<String> textList = new ArrayList<String>();
+    	for(Choice choice: choices) {
+    		textList.add(choice.getText());
+    	}
+    	return textList;
+    }
+    
+    private List<Integer> mapChoiceIdsAsInteger(List<Choice> choices) {
+    	List<Integer> idList = new ArrayList<Integer>();
+    	for(Choice choice: choices) {
+    		idList.add(choice.getId().intValue());
+    	}
+    	return idList;
+    }
 }

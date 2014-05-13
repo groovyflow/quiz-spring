@@ -7,57 +7,22 @@ import static org.junit.Assert.*;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Query;
-import javax.persistence.TypedQuery;
-
-import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.orm.jpa.JpaTransactionManager;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionCallbackWithoutResult;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.tassoni.quizspring.model.*;
 import org.tassoni.quizspring.repository.BasicRepository;
 
-import com.google.common.base.FinalizablePhantomReference;
 
 @ContextConfiguration(locations = { "/exampleApplicationContext-persistence.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
 public class WorkOnQueriesTest {
 	
 	@Autowired
-	private PlatformTransactionManager transactionManager;
-	
-	@Autowired
 	private BasicRepository basicRepository;
 	
-	@Autowired
-	EntityManagerFactory entityManagerFactory;
-	
-	private TransactionTemplate transactionTemplate;
-	private EntityManager entityManager;
-	
-	
-	
-	@Before
-	public void init() {
-		this.transactionTemplate = new TransactionTemplate(transactionManager);
-		entityManager = entityManagerFactory.createEntityManager();
-	}
-
-
 	@Test
 	public void nextQuestion() {
 		String queryString = "select distinct question2 from  Question question2 inner join fetch question2.choices choices,  NextQuestion nextQuestion, Question question where question.id = :id and nextQuestion.question = question and"
